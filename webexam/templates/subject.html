@@ -501,17 +501,20 @@
 				if(ids.length<1) return;
 				obj_ids=''
 				sep=''
-				for(i=0;i<ids.length;i++){
-					if($(ids[i]).is(':checked')){
-						id=$(ids[i]).attr('value');
-						obj_ids +=sep
-						obj_ids +=id
-						sep = ','
-					}
-				}
-				$.getJSON('/admin/subject/delete/'+obj_ids,function(data){
-					refresh();
-				})
+				var res = confirm("确定删除相关数据？");
+				if(res){
+				    for(i=0;i<ids.length;i++){
+					    if($(ids[i]).is(':checked')){
+					    	id=$(ids[i]).attr('value');
+					    	obj_ids +=sep
+					    	obj_ids +=id
+					    	sep = ','
+					    }
+				    }
+				    $.getJSON('/admin/subject/delete/'+obj_ids,function(data){
+					    refresh();
+				    })
+			    }
 			}
 			function generate_one_option(id,value){
 				divHtml='<div class="input-group">\

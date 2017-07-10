@@ -178,17 +178,20 @@
                 if(ids.length<1) return;
                 obj_ids=''
                 sep=''
-                for(i=0;i<ids.length;i++){
-                    if($(ids[i]).is(':checked')){
-                        id=$(ids[i]).attr('value');
-                        obj_ids +=sep
-                        obj_ids +=id
-                        sep = ','
+                var res = confirm("确定删除相关数据？");
+                if(res){
+                    for(i=0;i<ids.length;i++){
+                        if($(ids[i]).is(':checked')){
+                            id=$(ids[i]).attr('value');
+                            obj_ids +=sep
+                            obj_ids +=id
+                            sep = ','
+                        }
                     }
+                    $.getJSON('/admin/lib/delete/'+obj_ids,function(data){
+                        refresh();
+                    })
                 }
-                $.getJSON('/admin/lib/delete/'+obj_ids,function(data){
-                    refresh();
-                })
             }
             function get_selected_lib(){
                 ids = $('input[type="checkbox"]');
