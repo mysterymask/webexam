@@ -105,6 +105,7 @@
             url = '/admin/{{instance}}/count?libid='+data.libid+'&&sectionid='+data.sectionid+"&&subjecttype="+data.subjecttype+"&&degree="+data.degree;
             $.getJSON(url,function(data){
                 $('#spanTotal_'+index).text(data.total_rows);
+                $('#inputCount_'+index).val(data.total_rows);
             });
         }
         function check_count(index){

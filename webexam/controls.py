@@ -244,15 +244,20 @@ class Delete():
         ids = id.split(',')
         try:
             for _id in ids:
-                obj = self.obj_instance.get(self.instance).query.filter(
-                    text('id==%s' % _id)).first()
-                db_session.delete(obj)
-                #
-                if self.instance == 'subject':
+                if self.instance == 'lib':
+                    self.__delete_lib_related(_id)
+                elif self.instance == 'section':
+                    self.__delete_seciton_related(_id)
+                elif self.instance == 'subject':
                     self.__delete_subject_option_and_other(_id)
                 elif self.instance == 'user':
                     self.__delete_user_subject_and_other(_id)
+
+                obj = self.obj_instance.get(self.instance).query.filter(text('id==%s' % _id)).first()
+                db_session.delete(obj)
+
             db_session.commit()
+            print obj
             return json.dumps({'status': 'ok', 'msg': u'记录删除成功！'})
         except:
             return json.dumps({'status': 'fail', 'msg': u'记录删除失败！'})
@@ -268,6 +273,27 @@ class Delete():
                     return json.dumps({'status': 'ok', 'msg': u'记录删除成功！'})
                 except:
                     return json.dumps({'status': 'fail', 'msg': u'记录删除失败！'})
+
+    def __delete_lib_related(self,lib_id):
+        '''
+        级联删除题库相关联数据
+        '''
+        
+        obj = self.obj_instance.get('section').query.filter(text('libid==%s' % lib_id)).all()
+        for a_obj in obj:
+            self.__delete_seciton_related(a_obj.id)
+            self.obj_instance.get('section').query.filter(text('id==%s' % a_obj.id)).delete(synchronize_session=False)
+            db_session.commit()
+
+    def __delete_seciton_related(self,section_id):
+        '''
+        级联删除章节关联数据
+        '''
+        obj = self.obj_instance.get('subject').query.filter(text('sectionid==%s' % section_id)).all()
+        for a_obj in obj:
+            self.__delete_subject_option_and_other(a_obj.id)
+            self.obj_instance.get('subject').query.filter(text('id==%s' % a_obj.id)).delete(synchronize_session=False)
+            db_session.commit()
 
     def __delete_subject_option_and_other(self,subject_id):
         self.obj_instance.get('option').query.filter(
