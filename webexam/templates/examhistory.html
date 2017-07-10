@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+{% block content %}
+	<div class="page-header">
+		<div class="btn-group">
+		  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		    练习历史记录... <small>共{{results['page_info']['total_rows']}}记录</small><span class="caret"></span>
+		  </button>
+		  <ul class="dropdown-menu">
+		    <li><a href="javascript:delete_obj()">删除</a></li>
+		    <li role="separator" class="divider"></li>
+		    <li><a href="javascript:refresh()">刷新</a></li>
+		  </ul>
+		</div>	
+	</div>
+	<div class="dataTable_wrapper">
+        <table class="table table-striped table-hover" id="dataTables-example">
+            <thead>
+                <tr>
+                    <th >用户名称</th>
+                    <th >练习提交时间</th>
+                    <th >试题总数</th>
+                    <th >正确试题</th>
+                    <th >错误试题</th>
+                    <th >正确率</th>
+                    <th >总用时（分）</th>
+                    <th>练习类型</th>
+                </tr>
+            </thead>
+            <tbody>
+            	{% for row in results['rows'] %}
+                <tr class="odd gradeX">
+                    <td>
+						  <label>
+						    <input type="checkbox" value="{{row['id']}}">
+						   {{row['user'].username}}
+						  </label>
+                    </td>
+                    <td>{{row['datetime'].strftime("%Y-%m-%d %H:%M:%S")}}</td>
+                    <td>{{row['total']}}</td>
+                    <td>{{row['right']}}</td>
+                    <td>{{row['error']}}</td>
+                    <td>{{ '%.1f%%'|format((row['right']*100/row['total'])) }}</td>
+                    <td>{{row['timeused']}}</td>
+                    <td>
+                    {% if row['examtype'] =='subject' %}
+                    	自由练习
+                    {% elif row['examtype'] == 'markedsubject' %}
+                    	标记练习
+                    {% elif row['examtype'] == 'errorsubject' %}
+                     	错题练习
+                    {% endif %}
+                    </td>
+                </tr>
+              	{% endfor %}
+            </tbody>
+        </table>
+ 		<!-- 分页组件js -->
+		<script src="/static/js2/jquery.twbsPagination.js"></script>
+		<ul id="pagination" class="pagination-sm"></ul>
+		<script >
+			 $(pagination).twbsPagination({
+			 	first: "首页",
+			 	prev: "前一页",
+			 	next: "后一页",
+			 	last: "尾页",
+		        totalPages: {{results['page_info']['total_pages']}},
+		        visiblePages: 5,
+		        startPage: {{results['page_info']['page']}},
+		        onPageClick: function (event, page) {
+		            location.href="/admin/examhistory/list/"+page;
+		        }
+		    });
+			function refresh(){
+				location.href='/admin/examhistory/list/'+{{results['page_info']['page']}}
+			}
+			function delete_obj(){
+				ids = $('input[type="checkbox"]');
+				if(ids.length<1) return;
+				obj_ids=''
+				sep=''
+				for(i=0;i<ids.length;i++){
+					if($(ids[i]).is(':checked')){
+						id=$(ids[i]).attr('value');
+						obj_ids +=sep
+						obj_ids +=id
+						sep = ','
+					}
+				}
+				$.getJSON('/admin/examhistory/delete/'+obj_ids,function(data){
+					refresh();
+				})
+			}
+		</script>
+   </div>
+   
+{% endblock %}

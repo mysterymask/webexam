@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+{% block content %}
+	<!-- Modal -->
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <h4 class="modal-title" id="myModalLabel">用户编辑
+	        </h4>
+	      </div>
+	      <div class="modal-body">
+	        <form class="form-horizontal">
+				<div class="form-group">
+					<label for="inputUsername" class="col-sm-2 control-label">用户名称</label>
+					<div class="col-sm-10">
+					  <input type="text" class="form-control" id="inputUsername" placeholder="输入用户名称">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="inputPassword" class="col-sm-2 control-label">用户密码</label>
+					<div class="col-sm-10">
+					  <input type="text" class="form-control" id="inputPassword" placeholder="输入用户密码">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="inputDepartment" class="col-sm-2 control-label">用户部门</label>
+					<div class="col-sm-10">
+					  <input type="text" class="form-control" id="inputDepartment" placeholder="输入所在的部门">
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="selRole" class="col-sm-2 control-label">用户角色</label>
+					<div class="col-sm-10">
+					  <select name="selRole" id="selRole" class="form-control">
+					  	<option value='user'>普通用户</option>
+					  	<option value='admin'>管理员</option>
+					  </select>
+					</div>
+				</div>
+				<div class="form-group">
+				<label for="inputSortorder" class="col-sm-2 control-label">排序号</label>
+				<div class="col-sm-10">
+				  <input type="text" class="form-control" id="inputSortorder" placeholder="输入排排序号，默认100">
+				</div>
+				<input type="hidden" id="id" />
+				</div>
+			</form>
+	      </div>
+	      <div class="modal-footer">
+	      	<div class="col-sm-8">
+	      		<div class="text-left" id="divInfo">&nbsp;</div>
+	        </div>
+	        <div class="col-sm-4">
+	        	<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+	        	<button type="button" class="btn btn-primary" onclick="save_or_update()">保存</button>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<!-- end Modal-->
+	<div class="page-header">
+		<div class="btn-group">
+		  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		    用户管理... <small>共{{results['page_info']['total_rows']}}记录</small><span class="caret"></span>
+		  </button>
+		  <ul class="dropdown-menu">
+		    <li><a href="javascript:show_edit_modal(0)">新增</a></li>
+		    <li><a href="javascript:delete_obj()">删除</a></li>
+		    <li role="separator" class="divider"></li>
+		    <li><a href="javascript:refresh()">刷新</a></li>
+		  </ul>
+		</div>
+	</div>
+	<div class="dataTable_wrapper">
+        <table class="table table-striped table-hover" id="dataTables-example">
+            <thead>
+                <tr>
+                    <th width="30%">用户名称</th>
+                    <th width="25%">所在部门</th>
+                    <th width="25%">用户角色</th>
+                    <th>排序号</th>
+                </tr>
+            </thead>
+            <tbody>
+            	{% for row in results['rows'] %}
+                <tr class="odd gradeX">
+                    <td>
+						  <label>
+						    <input type="checkbox" value="{{row['id']}}">
+						   <a href=javascript:show_edit_modal({{row['id']}})>{{row['username']}}</a>
+						  </label>
+                    </td>
+                    <td>{{row['department']}}</td>
+                    <td>
+                    {% if row['role'] == 'user' %}
+                    	普通用户
+                    {% elif row['role'] == 'admin' %}
+                    	管理员
+                    {% endif %}
+                    </td>
+                    <td>{{row['sortorder']}}</td>
+                </tr>
+              	{% endfor %}
+            </tbody>
+        </table>
+ 		<!-- 分页组件js -->
+		<script src="/static/js2/jquery.twbsPagination.js"></script>
+		<ul id="pagination" class="pagination-sm"></ul>
+		<script >
+			 $(pagination).twbsPagination({
+			 	first: "首页",
+			 	prev: "前一页",
+			 	next: "后一页",
+			 	last: "尾页",
+		        totalPages: {{results['page_info']['total_pages']}},
+		        visiblePages: 5,
+		        startPage: {{results['page_info']['page']}},
+		        onPageClick: function (event, page) {
+		            location.href="/admin/user/list/"+page;
+		        }
+		    });
+			function show_edit_modal(id){
+				if(id==0)
+				{
+					$('#inputPassword').attr('placeholder','请输入密码');
+					$('#inputUsername').val('');
+					$('#inputPassword').val('');
+					$('#inputDepartment').val('');
+					$('#selRole').val('user');
+					$('#inputSortorder').val(100);
+				}
+				else{
+					$('#inputPassword').attr('placeholder','输入为空时不会更新原来的密码');
+					$.getJSON('/admin/user/load/'+id,function(data){
+						$('#inputUsername').val(data.username);
+						$('#inputPassword').val(data.password);
+						$('#inputDepartment').val(data.department);
+						$('#selRole').val(data.role);
+						$('#inputSortorder').val(data.sortorder);
+					})
+				}
+				$('#id').val(id);
+				$('#divInfo').html('');
+				$('#myModal').modal();
+			}
+			function check_data(data){
+				if(data.username == ''){
+					$('#divInfo').html('<h8>请输入用户的名称！</h8>');
+					return false;
+				}
+				if($('#id').val() == '0' && data.password == ''){
+					$('#divInfo').html('<h8>请输入用户的密码！</h8>');
+					return false;
+				}
+				if(data.department == ''){
+					$('#divInfo').html('<h8>请输入用户的部门！</h8>');
+					return false;
+				}
+				if(data.sortorder==''){
+					$('#divInfo').html('<h8>请输入排序号！</h8>');
+					return false;
+				}
+				return true;
+			}
+			function save_or_update(){
+				data = {
+					'username': $('#inputUsername').val(),
+					'password': $('#inputPassword').val(),
+					'department':$('#inputDepartment').val(),
+					'role': $('#selRole').val(),
+					'sortorder': $('#inputSortorder').val(),
+					'id': $('#id').val()
+				}
+				if(check_data(data) == false) return;
+				if(data.id == 0) url='/admin/user/edit';
+				else url='/admin/user/update/'+data.id;
+				$.ajax({
+					url:url,
+					type:'POST',
+					data:JSON.stringify(data),
+					contentType: "application/json",
+					dataType:'json',
+					success:function(ret_data){
+						if(data.id==0){
+							$('#inputUsername').val('');
+							$('#inputPassword').val('');
+							$('#inputDepartment').val('');
+							$('#selRole').val('user');
+							$('#inputSortorder').val(100);
+						}
+						$('#divInfo').html('<h8>'+ret_data.msg+'</h8>')
+					}
+				});
+			}
+			function refresh(){
+				location.href='/admin/user/list/'+{{results['page_info']['page']}}
+			}
+			function delete_obj(){
+				ids = $('input[type="checkbox"]');
+				if(ids.length<1) return;
+				obj_ids=''
+				sep=''
+				for(i=0;i<ids.length;i++){
+					if($(ids[i]).is(':checked')){
+						id=$(ids[i]).attr('value');
+						obj_ids +=sep
+						obj_ids +=id
+						sep = ','
+					}
+				}
+				$.getJSON('/admin/user/delete/'+obj_ids,function(data){
+					refresh();
+				})
+			}
+		</script>
+   </div>
+
+{% endblock %}

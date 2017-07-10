@@ -1,0 +1,290 @@
+{% extends "layout.html" %}
+{% block content %}
+	<a name="top"></a>
+	<div class="page-header">
+		<div>
+ 			<h4>
+			  <button type="button" class="btn btn-default  btn-primary" id="buttonSubmit">提交试题 </button>
+		 	  <div class="btn-group">
+				  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+				    试题操作...<span class="caret"></span>
+				  </button>
+				  <ul class="dropdown-menu">
+				    <li><a href="javascript:search_noanswer_subject()">查找未答试题</a></li>
+				    <li><a href="javascript:show_all_answer()">显示全部答案</a></li>
+				    <li role="separator" class="divider"></li>
+				    <li class="hidden" id="liReTest"><a href="javascript:retest_error_subject()">重练错误试题</a></li>
+				    <li role="separator" class="divider"></li>
+				    <li class="hidden" id="liMark"><a href="javascript:mark_or_remove_subject(true)">标记已选择试题</a></li>
+				    <li class="hidden" id="liRemoveUnmark"><a href="javascript:mark_or_remove_subject(false)">移除未选择试题的标记</a></li>
+				  </ul>
+			</div>
+		 	<span class="label label-success" id="spanStatistic"></span>
+		 	</h4>
+
+		</div>
+	</div>
+	<div >
+      <ul class="list-group" id="ulSubjectBody">
+	  </ul>
+	  <a name="bottom"></a>
+   </div>
+   <script>
+   		subject_data='';
+   		has_submit=false;
+   		datetime_test_start = new Date();
+   		$(function () {
+   			$.getJSON('/exam/{{instance}}/get_subjectdata',function(data){
+   				subject_data=data;
+   				//alert(subject_data.length);
+   				for(i=1;i<=subject_data.length;i++){
+		   			generate_subject_title(i);
+		   			generate_subject_option(i);
+		   		}
+		   		$('[data-toggle="popover"]').popover();
+			})
+		})
+		$('#buttonSubmit').click(function(){
+			subject_correct = 0;
+			for(i=1;i<=subject_data.length;i++){
+				answer = get_subject_answer(i);
+				subject_data[i-1].answer_submit=answer;
+				if(check_subject_answer_correct(i)) subject_correct+=1;
+			}
+			$('#spanStatistic').text('正确性：'+subject_correct+'/'+subject_data.length);
+			$('li[class="hidden"]').removeClass("hidden");
+			update_error_subject();
+			//update exam history only for first submit:
+			if(has_submit == false){
+				has_submit = true;
+				update_examhistory(subject_data.length,subject_correct);
+			}
+		})
+        function randomSort(a, b) {
+            return Math.random() > 0.5 ? -1 : 1;
+        }
+		function get_subject_answer(index){
+			subject = subject_data[index-1].subject;
+   			subject_type = subject.subjecttype;
+			$options=$('input[name="option_'+index+'"]');
+			answer_order=new Array();
+			for(k=0;k<$options.length;k++){
+				if($options[k].checked){
+					answer_order.push($options[k].value);
+				}
+			}
+   			return answer_order.join('');
+		}
+		function check_subject_answer_correct(index){
+			subject = subject_data[index-1];
+			$answer_text = $('span[name="spanAnswer_'+index+'"]');
+			$checkMark =$('input[name="inputMark_'+index+'"]');
+			$answer_text.removeClass('hidden label-default');
+			if(subject.answer == subject.answer_submit){
+				$answer_text.removeClass('glyphicon glyphicon-remove label-danger');
+				$answer_text.addClass('glyphicon glyphicon-ok label-success');
+				$checkMark.prop('checked',false);
+				return true;
+			}
+			else{
+				$answer_text.removeClass('glyphicon glyphicon-ok label-success');
+				$answer_text.addClass('glyphicon glyphicon-remove label-danger');
+				$checkMark.prop('checked',true);
+				return false;
+			}
+		}
+		function update_error_subject(){
+			subjects = get_error_subject();
+			if(subjects.length == 0) return;
+			url='/admin/errorsubject/update';
+			$.ajax({
+				url:url,
+				type:'POST',
+				data:JSON.stringify(subjects),
+				contentType: "application/json",
+				dataType:'json',
+				success:function(ret_data){
+					if(ret_data.status == 'fail') alert(ret_data.msg);
+				}//end success
+			});//end $.ajax
+
+		}
+		function update_examhistory(subject_total,subject_right){
+			datetime_test_submit = new Date();
+			timeused = Math.ceil((datetime_test_submit.getTime()-datetime_test_start.getTime())/(60*1000));
+			post_data ={
+				'total':subject_total,
+				'right':subject_right,
+				'error':subject_total-subject_right,
+				'timeused':timeused,
+				'examtype':'{{instance}}'
+			}
+			url='/admin/examhistory/edit';
+			$.ajax({
+				url:url,
+				type:'POST',
+				data:JSON.stringify(post_data),
+				contentType: "application/json",
+				dataType:'json',
+				success:function(ret_data){
+					if(ret_data.status == 'fail') alert(ret_data.msg);
+				}//end success
+			});//end $.ajax
+		}
+		function search_noanswer_subject(){
+			for(i=1;i<=subject_data.length;i++){
+				answer = get_subject_answer(i);
+				if(answer==''){
+					location.href='#subject_'+i;
+					break;
+				}
+			}
+			if(i>subject_data.length){
+				alert('所有试题已答！');
+			}
+		}
+		function show_all_answer(){
+			$('span[class="label label-default hidden"]').removeClass('hidden');
+		}
+		function retest_error_subject(){
+			for(i=subject_data.length-1;i>=0;i--){
+				if(subject_data[i].answer == subject_data[i].answer_submit) subject_data.splice(i,1);
+				else subject_data[i].answer_submit='';
+			}
+			$('#ulSubjectBody').empty();
+			for(i=1;i<=subject_data.length;i++){
+	   			generate_subject_title(i);
+	   			generate_subject_option(i);
+	   		}
+	   		$('[data-toggle="popover"]').popover();
+	   		$('#spanStatistic').text('');
+	   		$('#liReTest').addClass('hidden');
+	   		$('#liMark').addClass('hidden');
+	   		$('#liRemoveUnmark').addClass('hidden');
+		}
+		function mark_or_remove_subject(flag){
+			//flag->true:mark subject,flag->false:remove unmarked subject
+			subjects = get_subject_marked_status(flag);
+			if(subjects.length==0) alert('没有试题可以标记或移除标记！');
+			else{
+				url='/admin/markedsubject/';
+				if(flag) url+='mark';
+				else url+='remove';
+				$.ajax({
+					url:url,
+					type:'POST',
+					data:JSON.stringify(subjects),
+					contentType: "application/json",
+					dataType:'json',
+					success:function(ret_data){
+						if(ret_data.status == 'ok') alert('保存/移除标记试题成功！');
+						else alert(ret_data.msg);
+					}//end success
+				});//end $.ajax
+			}//end if(subjects.length>0)
+		}
+		function get_subject_marked_status(flag){
+			subjects=new Array();
+			for(i=1;i<=subject_data.length;i++){
+				$inputMark=$('input[name="inputMark_'+i+'"]')[0];
+				if($inputMark.checked == flag){
+					subjects.push({'subjectid':subject_data[i-1].subject.id});
+				}
+			}
+			return subjects;
+		}
+		function get_error_subject(){
+			subjects = new Array();
+			for(i=0;i<subject_data.length;i++){
+				if(subject_data[i].answer != subject_data[i].answer_submit){
+					subjects.push({'subjectid':subject_data[i].subject.id})
+				}
+			}
+
+			return subjects;
+		}
+		////////////////////////////
+ 		function generate_subject_title(index){
+   			subject = subject_data[index-1].subject;
+   			subject_type = subject.subjecttype;
+   			if(subject_type =='SingleSel') subject_type_name='单选题';
+   			else if (subject_type == 'MultiSel') subject_type_name='多选题';
+   			else if(subject_type == 'Judge') subject_type_name='判断题';
+   			html = '<a name="subject_'+index+'"></a><li class="list-group-item list-group-item-info subject-title">'+index+'.('+subject_type_name+')'+subject.title;
+   			if(subject.count>=0){
+   				html += '<span class="badge">错误次数：'+subject.count+'</span>';
+   			}
+   			html += '</li>';
+   			$('#ulSubjectBody').append(html);
+   		}
+   		function generate_subject_option(index){
+   			subject = subject_data[index-1].subject;
+   			options = subject_data[index-1].option;
+   			subject_type = subject.subjecttype;
+
+   			html = '<li class="list-group-item subject-option">\
+		  				<div class="container-fluid">\
+		  					<div class="row">';
+		  	option_html = '';
+		  	if(subject_type == 'SingleSel' || subject_type == 'MultiSel'){
+		  		for(k=1;k<=options.length;k++){
+		  			option_html += generate_option(index,subject_type,options[k-1].title,k);
+		  		}
+		  	}
+		  	else if (subject_type == 'Judge'){
+		  		option_html ='\
+		  			<label class="radio-inline">\
+					  <input type="radio" name="option_'+index+'"  value="True"> 正确\
+					</label>\
+					<label class="radio-inline">\
+					  <input type="radio" name="option_'+index+'"  value="False"> 错误\
+					</label>';
+		  	}
+		  	html += option_html;
+		  	html += '</div>';
+		  	html += generate_answer(index);
+		  	html += '</div>';
+		  	html += '</li>';
+
+		  	$('#ulSubjectBody').append(html);
+   		}
+   		function generate_option(index,subjecttype,title,option_value){
+   			if(subjecttype == 'SingleSel') option_control="radio";
+   			else if (subjecttype == 'MultiSel') option_control = 'checkbox';
+   			else return "";
+
+   			option_order='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+   			option_html = '<div class="'+option_control+'">\
+					  <label>\
+					    <input type="'+option_control+'" name="option_'+index+'" value="'+option_value+'">'+option_order[option_value-1]+'. '+title+'</label></div>';
+			return option_html;
+   		}
+   		function generate_answer(index){
+   			subject = subject_data[index-1].subject;
+   			subject_type = subject.subjecttype;
+   			answer = subject_data[index-1].answer;
+   			if(subject_type == 'Judge'){
+   				if(answer == 'True') answer = '正确';
+   				else answer = '错误';
+   			}
+   			else{
+   				answer_order = answer.split('');
+   				answer = "";
+   				for(j=0;j<answer_order.length;j++){
+   					answer += String.fromCharCode(65-1+parseInt(answer_order[j]));
+   				}
+   			}
+   			html = '\
+   				<div class="row text-right subject-answer">\
+			  		<span class="label label-default hidden" name="spanAnswer_'+index+'">&nbsp;答案：'+answer+'\
+					    <label>\
+					      <input name="inputMark_'+index+'" type="checkbox">标记\
+					    </label>\
+					</span>&nbsp;\
+					<a tabindex="0" class="btn btn-default btn-xs" role="button" data-toggle="popover" data-trigger="focus" data-placement="left" data-content="'+answer+'">显示答案</a>\
+					</button><a href="#top" title="返回顶部"><span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></a><a href="#bottom" title="直达底部"><span class="glyphicon glyphicon-chevron-down" aria-hidden="true"></span></a>\
+		  		</div>';
+		  	return html;
+   		}
+   </script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+{% block content %}
+	<div class="page-header">
+		<h4>试题导入</h4>
+	</div>
+	<div class="panel panel-default">
+		  <link href="/static/js2/fileinput.min.css" rel="stylesheet"/>
+		  <script src='/static/js2/fileinput.min.js'></script>
+		  <!-- Default panel contents -->
+		  <div class="panel-heading alert alert-success">
+		  	{% if filename and subject_total and subject_ok %}
+			<button type="button" class="btn btn-default  btn-primary" id="buttonUploadSave">
+			    导入 <small>(总共试题 {{subject_total}} ，正确 {{subject_ok}} )</small>
+			</button>
+			{% elif subject_total and subject_ok %}
+				总共试题 {{subject_total}} ，导入正确 {{subject_ok}}
+			{% else %}
+				上传导入的试题文件(xls格式，<a href="/static/import_template.xls">模板文件下载</a>)
+			{% endif %}
+		  </div>
+		  <div class="panel-body">
+		  	  <div >
+				  <form enctype="multipart/form-data" method="POST">
+				    <label class="control-label">Select File</label>
+					<input id="input_file" name="input_file" type="file" class="file" data-show-preview="false">
+				  </form>
+			  </div>
+		  </div>
+
+		  <!-- Table -->
+		  <table class="table table-bordered table-hover table-striped" style="word-break:break-all; word-wrap:break-all" id="dataTables-example">
+		  {% if subject_data %}
+            <thead>
+                <tr>
+                    <th width="5%">类型</th>
+                    <th width="8%">题库</th>
+                    <th width="8%">章节</th>
+                    <th width="5%">难度</th>
+                    <th width="15">标题</th>
+                    <th width="10">答案</th>
+                    <th width="30%">选项</th>
+                    <th width="15"></th>
+                </tr>
+            </thead>
+            <tbody>
+            	{% for row in subject_data %}
+                <tr class="odd gradeX
+                {% if row['info'] == 'ok' %}
+
+                {% else %}
+                	danger
+                }
+                {% endif %}
+                 ">
+                    <td>{{row['subjecttypename']}}</td>
+                    <td>{{row['libname']}}</td>
+                    <td>{{row['sectionname']}}</td>
+                    <td>{{row['degreename']}}</td>
+                    <td>{{row['title']}}</td>
+                    <td>{{row['answer']}}</td>
+                    <td>{{row['option_all']}}</td>
+                    <td>{{row['info']}}</td>
+                </tr>
+              	{% endfor %}
+            </tbody>
+        {% endif %}
+        </table>
+	</div>
+	<script>
+		$(function(){
+			$("#input_file").fileinput();
+			{% if filename %}
+			$("#buttonUploadSave").click(function(){
+				location.href ='/admin/subject/upload/{{filename}}';
+			})
+			{% endif %}
+		})
+	</script>
+
+{% endblock %}

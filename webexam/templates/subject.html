@@ -1,0 +1,529 @@
+{% extends "layout.html" %}
+{% block content %}
+	<!-- Modal -->
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <h4 class="modal-title" >试题编辑
+	        </h4>
+	      </div>
+	      <div class="modal-body">
+	        <form class="form-horizontal">
+	        	<div class="form-group">
+					<label for="inputSectionName" class="col-sm-2 control-label">试题题目</label>
+					<div class="col-sm-10">
+						<textarea class="form-control" id="textTitleModal" placeholder="输入试题标题" rows="3"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="selLibModal" class="col-sm-2 control-label">题库名称</label>
+					<div class="col-sm-4">
+					  <select name="selLibModal" id="selLibModal" class="form-control">
+					  </select>
+					</div>
+					<label for="selSectionModal" class="col-sm-2 control-label">章节名称</label>
+					<div class="col-sm-4">
+					  <select name="selSectionModal" id="selSectionModal" class="form-control">
+					  <option value='0'>--请选择章节--</option>
+					  </select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="selSubjectTypeModal" class="col-sm-2 control-label">试题类型</label>
+					<div class="col-sm-4">
+					  <select name="selSubjectTypeModal" id="selSubjectTypeModal" class="form-control">
+					  	<option value="SingleSel">单选题</option>
+					  	<option value="MultiSel">多选题</option>
+					  	<option value="Judge">判断题</option>
+					  </select>
+					</div>
+					<label for="selDegreeModal" class="col-sm-2 control-label">试题难度</label>
+					<div class="col-sm-4">
+					  <select name="selDegreeModal" id="selDegreeModal" class="form-control">
+					  	<option value="normal">普通</option>
+					  	<option value="easy">容易</option>
+					  	<option value="hard">困难</option>
+					  </select>
+					</div>
+				</div>
+				<div class="panel panel-default">
+					  <div class="panel-heading ">
+					    <h4 class="panel-title ">选项及答案
+					    	<small>
+					    		<button type="button" class="btn btn-default btn-sm" name="buttonAddOption" id="buttonAddOption">增加选项</button>
+					    		<button type="button" class="btn btn-default btn-sm" name="buttonDelOption" id="buttonDelOption">减少选项</button>
+					    	</small>
+					    </h4>
+					  </div>
+					  <div class="panel-body show" id="divSelOptions">
+				      </div>
+				       <div class="panel-body hidden" id="divJudgeOptions">
+						  <div class="radio">
+							  <label>
+							    <input type="radio" name="optionsRadios" id="optionsRadios1" value="True" >正确
+							  </label>
+						  </div>
+						  <div class="radio">
+							  <label>
+							    <input type="radio" name="optionsRadios" id="optionsRadios2" value="False">错误
+							  </label>
+						  </div>
+				      </div>
+				</div>
+			</form>
+	      </div>
+	      <div class="modal-footer">
+	      	<div class="col-sm-8">
+	      		<div class="text-left" id="divInfo">&nbsp;</div>
+	        </div>
+	        <div class="col-sm-4">
+	        	<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+	        	<button type="button" class="btn btn-primary" onclick="save_or_update()">保存</button>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<!-- end Modal-->
+	<div class="page-header">
+		<div class="btn-group">
+		  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		    试题管理... <small>共{{results['page_info']['total_rows']}}记录</small><span class="caret"></span>
+		  </button>
+		  <ul class="dropdown-menu">
+		    <li><a href="javascript:show_edit_modal(0)">新增</a></li>
+		    <li><a href="javascript:delete_obj()">删除</a></li>
+		    <li role="separator" class="divider"></li>
+		    <li><a href="javascript:refresh()">刷新</a></li>
+		  </ul>
+		</div>
+		<button class="btn btn-default" type="button" data-toggle="collapse" data-target="#collapseHeader" aria-expanded="false" aria-controls="collapseHeader">查找试题...
+		</button>
+		<div class="collapse" id="collapseHeader">
+			  <div class="well">
+				  <form class="navbar-form navbar-left">
+					    <select name="selLib" id="selLib" class="form-control">
+						</select>
+						<select name="selSection" id="selSection" class="form-control">
+							<option value='0'>--请选择章节--</option>
+						</select>
+						<select name="selSubjectType" id="selSubjectType" class="form-control">
+							<option value=''>--请选择类型--</option>
+						  	<option value="SingleSel">单选题</option>
+						  	<option value="MultiSel">多选题</option>
+						  	<option value="Judge">判断题</option>
+						</select>
+						 <div class="input-group custom-search-form">
+                                <input type="text" class="form-control" id="inputTitle" name="inputTitle" placeholder="输入试题标题..." value="{{results['page_info']['title']}}">
+                                <span class="input-group-btn">
+                                    <button class="btn btn-default btn-primary" type="button" id="buttonSearch" name="buttonSearch">
+                                        <i class="fa fa-search"></i>
+                                    </button>
+                                </span>
+                         </div>
+						<input type="hidden" id="id" />
+						<input type="hidden" id="libid" value="{{results['page_info']['libid']}}"/>
+						<input type="hidden" id="sectionid" value="{{results['page_info']['sectionid']}}"/>
+						<input type="hidden" id="subjecttype" value="{{results['page_info']['subjecttype']}}"/>
+						<input type="hidden" id="title" value="{{results['page_info']['title']}}"/>
+					</form>
+					<br><br>
+			 </div>
+		</div>
+	</div>
+	<div class="dataTable_wrapper">
+        <table class="table table-striped table-hover" id="dataTables-example">
+            <thead>
+                <tr>
+                	<th>试题名称</th>
+                    <th width="15%">题库名称</th>
+                    <th width="10%">试题类型</th>
+                </tr>
+            </thead>
+            <tbody>
+            	{% for row in results['rows'] %}
+                <tr class="odd gradeX">
+                    <td>
+						  <label>
+						    <input type="checkbox" value="{{row['id']}}">
+						   <a href=javascript:show_edit_modal({{row['id']}})>{{row['title']}}</a>
+						  </label>
+                    </td>
+                     <td>
+						  <label>
+						   {{row['section']['lib']['libname']}}
+						  </label>
+                    </td>
+                    <td>
+                    {% if row['subjecttype'] == 'Judge' %}
+                    	判断题
+                    {% elif row['subjecttype'] == 'SingleSel' %}
+                    	单选题
+                    {% elif row['subjecttype'] == 'MultiSel' %}
+                    	多选题
+                    {% endif %}
+                    </td>
+                </tr>
+              	{% endfor %}
+            </tbody>
+        </table>
+ 		<!-- 分页组件js -->
+		<script src="/static/js2/jquery.twbsPagination.js"></script>
+		<ul id="pagination" class="pagination-sm"></ul>
+		<script >
+			$(function(){
+				load_lib();
+				if($('#libid')!='0'){
+					load_section($('#selSection'),$('#libid').val(),$("#sectionid").val());
+					load_section($('#selSectionModal'),$('#libid').val(),$("#sectionid").val());
+				}
+		    })
+		    $('#inputTitle').keydown(function(){
+		    	if(event.keyCode == 13){
+		    		search(1);
+		    	}
+		    })
+		    $("#selLib").change(function(){
+				load_section($('#selSection'),$('#selLib').val(),0);
+				load_section($('#selSectionModal'),$('#selLib').val(),0);
+
+			})
+			$("#selLibModal").change(function(){
+				load_section($('#selSectionModal'),$('#selLibModal').val(),0);
+			})
+			$('#buttonSearch').click(function(){
+				search(1);
+			})
+			$('#buttonAddOption').click(function(){
+				if($("#selSubjectTypeModal").val()=='Judge') return;
+				generate_one_option(0,'');
+			})
+			$('#buttonDelOption').click(function(){
+				if($("#selSubjectTypeModal").val()=='Judge') return;
+				options = $('#divSelOptions div');
+				if(options.length>0) options[options.length-1].remove();
+
+			})
+			$('#selSubjectTypeModal').change(function(){
+				show_option_panel();
+			})
+			$("form").submit(function(){
+		        event.preventDefault();
+			})
+			$(pagination).twbsPagination({
+			 	first: "首页",
+			 	prev: "前一页",
+			 	next: "后一页",
+			 	last: "尾页",
+		        totalPages: {{results['page_info']['total_pages']}},
+		        visiblePages: 5,
+		        startPage: {{results['page_info']['page']}},
+		        onPageClick: function (event, page) {
+		            search(page);
+		        }
+		    });
+		    function load_lib(){
+		    	$body_lib=$('#selLib');
+		    	$modal_lib=$('#selLibModal');
+		    	$body_lib.append("<option value='0'>--请选择题库--</option>");
+		    	$modal_lib.append("<option value='0'>--请选择题库--</option>");
+		    	$.getJSON('/admin/lib/loads',function(data){
+		    		for(i=0;i<data.length;i++){
+		    			$body_lib.append("<option value='"+data[i].id+"'>"+data[i].libname+"</option>");
+		    			$modal_lib.append("<option value='"+data[i].id+"'>"+data[i].libname+"</option>");
+		    		}
+		    		$body_lib.val($('#libid').val())
+		    		$modal_lib.val(0)
+		    	})
+		    }
+		    function load_section(selSectionObj,libid,sectionid){
+		    	selSectionObj.empty();
+		    	selSectionObj.append("<option value='0'>--请选择章节--</option>");
+		    	if(libid!=0){
+		    		$.getJSON('/admin/section/loads?libid='+libid,function(data){
+			    		for(i=0;i<data.length;i++){
+			    			selSectionObj.append("<option value='"+data[i].id+"'>"+data[i].sectionname+"</option>");
+			    		}
+			    		selSectionObj.val(sectionid);
+		    		})
+		    	}
+		    }
+		    function load_option(subjectid){
+		    	if(subjectid == '0') return;
+		    	options = $('#divSelOptions div');
+				options.remove();
+				$.getJSON('/admin/option/loads?subjectid='+subjectid,function(data){
+					for(i=0;i<data.length;i++){
+						generate_one_option(i+1,data[i].title);
+					}
+					load_answer(subjectid);
+				})
+		    }
+		    function load_answer(subjectid){
+		    	if(subjectid == '0') return;
+				$.getJSON('/admin/answer/loads?subjectid='+subjectid,function(data){
+					if(data.length==0) return;
+					if(data[0].answervalue=='True' || data[0].answervalue=='False'){
+						if(data[0].answervalue=='True') $('#optionsRadios1').attr('checked','true');
+						else $('#optionsRadios2').attr('checked','true');
+					}
+					else{
+						answers = data[0].answervalue.split("");
+						option_checkboxs = $('#divSelOptions div input[type="checkbox"]');
+						for(i=0;i<answers.length;i++){
+							for(k=0;k<option_checkboxs.length;k++){
+								if(answers[i]==$(option_checkboxs[k]).val()){
+									$(option_checkboxs[k]).attr('checked','true');
+								}
+							}
+						}
+					}
+				})
+		    }
+		    function show_option_panel(){
+		    	seltype = $('#selSubjectTypeModal').val()
+				if(seltype == 'SingleSel' || seltype == 'MultiSel'){
+					$('#divJudgeOptions').removeClass("show");
+					$('#divJudgeOptions').addClass("hidden");
+					$('#divSelOptions').removeClass("hidden");
+					$('#divSelOptions').addClass("show");
+				}
+				else{
+					$('#divSelOptions').removeClass("show");
+					$('#divSelOptions').addClass("hidden");
+					$('#divJudgeOptions').removeClass("hidden");
+					$('#divJudgeOptions').addClass("show");
+				}
+		    }
+		    function init_subject(){
+		    	$('#selLibModal').val($('#selLib').val());
+				$('#selSectionModal').val($('#selSection').val());
+				$('#textTitleModal').val('');
+				$('#selSubjectTypeModal').val('SingleSel');
+				$('#selDegreeModal').val('normal');
+		    }
+		    function init_judge_subject(){
+				$('#optionsRadios1').attr('checked','true');
+		    }
+		    function init_select_subject(){
+				$('#divSelOptions').empty();
+				generate_one_option(0,'');
+				generate_one_option(0,'');
+				generate_one_option(0,'');
+				generate_one_option(0,'');
+		    }
+			function show_edit_modal(id){
+				if(id==0){
+					init_subject()
+					init_judge_subject();
+					init_select_subject();
+					show_option_panel();
+				}
+				else{
+					$.getJSON('/admin/subject/load/'+id,function(data){
+						$('#selLibModal').val(data.libid);
+						load_section($('#selSectionModal'),data.libid,data.sectionid)
+						$('#textTitleModal').val(data.title);
+						$('#selSubjectTypeModal').val(data.subjecttype);
+						$('#selDegreeModal').val(data.degree);
+						load_option(id);
+						show_option_panel()
+					})
+				}
+				$('#id').val(id)
+				$('#divInfo').html('')
+				$('#myModal').modal();
+			}
+			function check_data(data){
+				if(data.title == ''){
+					$('#divInfo').html('<h8>请输入试题的题目！</h8>');
+					return false;
+				}
+				if(data.sectionid == '0'){
+					$('#divInfo').html('<h8>请选择一个章节！</h8>');
+					return false;
+				}
+				if(data.subjecttype == 'SingleSel' || data.subjecttype == 'MultiSel'){
+					options = get_options(0);
+					if(options.length <=0){
+						$('#divInfo').html('<h8>试题至少有一个选项！</h8>');
+						return false;
+					}
+					has_answer = false;
+					for(i=0;i<options.length;i++){
+						if(options[i].checked){
+							has_answer = true;
+							break;
+						}
+					}
+					if(has_answer == false) {
+						$('#divInfo').html('<h8>请设置试题的答案！</h8>');
+						return false;
+					}
+				}
+				return true;
+			}
+			function save_answer(subjectid,options){
+				answer_value = '';
+				if($('#selSubjectTypeModal').val() == 'Judge'){
+					answer_value = $('input[name="optionsRadios"]:radio:checked').val();
+				}
+				else{
+					for(i=0;i<options.length;i++){
+						if(options[i].checked){
+							o = i+1;
+							answer_value += o.toString();
+						}
+					}
+				}
+				post_data = {'subjectid':subjectid,'answervalue':answer_value};
+				$.getJSON('/admin/answer/delall?subjectid='+subjectid,function(data){
+					url='/admin/answer/edit';
+					$.ajax({
+						url:url,
+						type:'POST',
+						data:JSON.stringify(post_data),
+						contentType: "application/json",
+						dataType:'json',
+						success:function(ret_data){
+							if(ret_data.status=='ok'){
+								$('#divInfo').html('<h8>'+ret_data.msg + '</h8>');
+								if($('#id').val()==0){
+									$('#textTitleModal').val('');
+									if($('#selSubjectTypeModal').val() == 'Judge') {
+										init_judge_subject();
+									}
+									else{
+										init_select_subject();
+									}
+								}
+							}
+							else{
+								$('#divInfo').html('<h8>'+ret_data.msg + '</h8>');
+							}
+						}//end success
+					});//end $.ajax
+				})
+			}
+			function get_options(subjectid){
+				option_checkboxs = $('#divSelOptions div input[type="checkbox"]');
+				option_titles = $('#divSelOptions div input[type="text"]');
+				var options = new Array();
+				for(i=0;i<option_checkboxs.length;i++){
+					if($(option_titles[i]).val()=='') continue;
+					o={
+						'id':0,//$(option_checkboxs[i]).val(),
+						'subjectid':subjectid,
+						'title':$(option_titles[i]).val(),
+						'sortorder':1+i,
+						'checked':$(option_checkboxs[i]).is(':checked')
+					}
+					options.push(o);
+				}
+				return options;
+			}
+			function save_option(subjectid){
+				options = get_options(subjectid);
+				$.getJSON('/admin/option/delall?subjectid='+subjectid,function(data){
+					url='/admin/option/edit';
+					$.ajax({
+						url:url,
+						type:'POST',
+						data:JSON.stringify(options),
+						contentType: "application/json",
+						dataType:'json',
+						success:function(ret_data){
+							if(ret_data.status=='ok'){
+								for(i=0;i<ret_data.id.length;i++) {
+									options[i].id = ret_data.id[i];
+								}
+								save_answer(subjectid,options)
+							}
+							else{
+								$('#divInfo').html('<h8>'+ret_data.msg+'</h8>');
+							}
+						}//end success
+					});//end $.ajax
+				})//end delall?subjectid
+			}
+			function save_object(data){
+				if(data.id == 0) url='/admin/subject/edit';
+				else url='/admin/subject/update/'+data.id;
+				$.ajax({
+					url:url,
+					type:'POST',
+					data:JSON.stringify(data),
+					contentType: "application/json",
+					dataType:'json',
+					success:function(ret_data){
+						if(ret_data.status=='ok' && ret_data.id>0){
+						 	if(data.subjecttype=='SingleSel' ||data.subjecttype=='MultiSel') {
+								save_option(ret_data.id);
+							}
+							else{
+								save_answer(ret_data.id,'')
+							}
+						}
+					}
+				});
+			}
+			function save_or_update(){
+				data = {
+					'title':$('#textTitleModal').val(),
+					'sectionid': $('#selSectionModal').val(),
+					'subjecttype': $('#selSubjectTypeModal').val(),
+					'degree':$('#selDegreeModal').val(),
+					'id': $('#id').val()
+				}
+				if(check_data(data) == false) return;
+				save_object(data);
+			}
+			function refresh(){
+				libid = $('#libid').val();
+				sectionid = $("#sectionid").val();
+				subjecttype = $("#subjecttype").val();
+				title = $("#title").val();
+
+				location.href="/admin/subject/list/1?libid="+libid+"&&sectionid="+sectionid+"&&subjecttype="+subjecttype+"&&title="+title;
+			}
+			function search(page){
+				libid = $("#selLib").val();
+				sectionid = $("#selSection").val();
+				subjecttype = $("#selSubjectType").val();
+				title = $("#inputTitle").val();
+
+				location.href="/admin/subject/list/"+page+"?libid="+libid+"&&sectionid="+sectionid+"&&subjecttype="+subjecttype+"&&title="+title;
+			}
+			function delete_obj(){
+				ids = $('table[id="dataTables-example"] input[type="checkbox"]');
+				if(ids.length<1) return;
+				obj_ids=''
+				sep=''
+				for(i=0;i<ids.length;i++){
+					if($(ids[i]).is(':checked')){
+						id=$(ids[i]).attr('value');
+						obj_ids +=sep
+						obj_ids +=id
+						sep = ','
+					}
+				}
+				$.getJSON('/admin/subject/delete/'+obj_ids,function(data){
+					refresh();
+				})
+			}
+			function generate_one_option(id,value){
+				divHtml='<div class="input-group">\
+					      <span class="input-group-addon">\
+					        <input type="checkbox" aria-label="..." value="'+id+'">\
+					      </span>\
+					      <input type="text" class="form-control" aria-label="..." value="'+value+'">\
+					    </div><!-- /input-group -->\
+					</div>';
+				$('#divSelOptions').append(divHtml);
+			}
+		</script>
+   </div>
+
+{% endblock %}

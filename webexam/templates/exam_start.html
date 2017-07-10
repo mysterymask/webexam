@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="page-header">
+        <h4>
+        {% if instance == 'subject' %}
+            自由练习
+        {% elif instance == 'markedsubject' %}
+            标记试题练习
+        {% elif instance == 'errorsubject' %}
+            错题练习
+        {% endif %}
+        </h4>
+    </div>
+    <div class="panel panel-default">
+          <link href="/static/js2/fileinput.min.css" rel="stylesheet"/>
+          <script src='/static/js2/fileinput.min.js'></script>
+          <!-- Default panel contents -->
+          <div class="panel-heading alert alert-success">
+               <div class="btn-group">
+               <h4 class="panel-title ">选择练习的试题
+                    <small>
+                        <button type="button" class="btn btn-default btn-sm" name="buttonAddOption" id="buttonAddOption">增加试题</button>  
+                        <button type="button" class="btn btn-default btn-sm" name="buttonDelOption" id="buttonDelOption">减少试题</button>  
+                    </small>
+                </h4>
+                </div>
+            <a tabindex="0" id = "buttonStart" class="btn btn-default btn-primary" role="button" data-toggle="popover" data-trigger="focus" data-content="请输入正确的练习数量！">开始练习</a>
+            <input type="checkbox" id="checkOptionRandom"> 选择题选项随机
+          </div>
+          <div class="panel-body">
+                  <form class="form-horizontal" action="/exam/{{instance}}/test" method="post">
+                        <input type="hidden" name="optionRandom" id="optionRandom" value="false"> 
+                  </form>
+          </div>
+    </div>
+    <script>
+        div_index=1;
+
+        $(function(){
+            generate_one_select();
+            load_lib($('#selLib_'+(div_index-1)));
+            update_count(1);
+            $('[data-toggle="popover"]').popover();
+        })
+        $('#buttonAddOption').click(function(){
+            generate_one_select();
+            load_lib($('#selLib_'+(div_index-1)));
+            update_count(div_index-1);
+        })
+        $('#buttonDelOption').click(function(){
+            if(div_index>2){
+                div_index -= 1;
+                $('#div_'+div_index).remove();
+            }
+        })
+        $('#buttonStart').click(function(){
+            for(i=1;i<div_index;i++){
+                if(check_count(i)==false){
+                    $('#buttonStart').popover();
+                    return ;
+                }
+            }
+            if($('#checkOptionRandom').is(':checked')) $('#optionRandom').val('true');
+            else $('#optionRandom').val('false');
+
+            $('#buttonStart').popover('destroy');
+            $("form").submit();
+        })
+        function sel_change(instance,index){
+            if(instance == 'selLib'){
+                libid = $('#selLib_'+index).val();
+                load_section($('#selSection_'+index),libid);
+            }
+            update_count(index);
+        }
+        function load_lib(selLibObj){
+            selLibObj.empty();
+            selLibObj.append("<option value='0'>--请选择题库--</option>");
+            $.getJSON('/admin/lib/loads',function(data){
+                for(i=0;i<data.length;i++){
+                    selLibObj.append("<option value='"+data[i].id+"'>"+data[i].libname+"</option>");
+                }
+                selLibObj.val(0)
+            })
+        }
+        function load_section(selSectionObj,libid){
+            selSectionObj.empty();
+            selSectionObj.append("<option value='0'>--请选择章节--</option>");
+            if(libid!=0){
+                $.getJSON('/admin/section/loads?libid='+libid,function(data){
+                    for(i=0;i<data.length;i++){
+                        selSectionObj.append("<option value='"+data[i].id+"'>"+data[i].sectionname+"</option>");
+                    }
+                    selSectionObj.val(0);
+                })
+            }
+        }
+        function update_count(index){
+            data = {
+                'libid':$('#selLib_'+index).val(),
+                'sectionid':$('#selSection_'+index).val(),
+                'subjecttype':$('#selSubjectType_'+index).val(),
+                'degree':$('#selDegree_'+index).val()
+            };
+            url = '/admin/{{instance}}/count?libid='+data.libid+'&&sectionid='+data.sectionid+"&&subjecttype="+data.subjecttype+"&&degree="+data.degree;
+            $.getJSON(url,function(data){
+                $('#spanTotal_'+index).text(data.total_rows);
+            });
+        }
+        function check_count(index){
+            total_rows=($('#spanTotal_'+index).text());
+            input_count=parseInt($('#inputCount_'+index).val());
+            if(input_count<=0 || input_count>total_rows){
+                //alert("请输入正确的练习数量！");
+                return false;
+            }
+            return true;
+        }
+        function generate_one_select(){
+            html = ' <div class="input-group" id="div_'+div_index+'">\
+                        <div class="col-sm-2">\
+                            <select class="form-control" id="selLib_'+div_index+'" name="selLib_'+div_index+'"  onchange=sel_change("selLib",'+div_index+')>\
+                                <option value="0">--请选择题库--</option>\
+                            </select>\
+                        </div>\
+                        <div class="col-sm-2">\
+                            <select class="form-control" id="selSection_'+div_index+'" name="selSection_'+div_index+'"  onchange=sel_change("selSection",'+div_index+')>\
+                                <option value="0">--请选择章节--</option>\
+                            </select>\
+                        </div>\
+                        <div class="col-sm-2">\
+                            <select class="form-control" id="selSubjectType_'+div_index+'" name="selSubjectType_'+div_index+'" onchange=sel_change("selSubjectType",'+div_index+')>\
+                                <option value="">--请选择类型---</option>\
+                                <option value="SingleSel">单选题</option>\
+                                <option value="MultiSel">多选题</option>\
+                                <option value="Judge">判断题</option>\
+                            </select>\
+                        </div>\
+                        <div class="col-sm-2">\
+                            <select class="form-control" id="selDegree_'+div_index+'" name="selDegree_'+div_index+'"  onchange=sel_change("selDegree",'+div_index+')>\
+                                <option value="">--请选择难度--</option>\
+                                <option value="easy">容易</option>\
+                                <option value="normal">普通</option>\
+                                <option value="hard">困难</option>\
+                            </select>\
+                        </div>\
+                        <div class="col-sm-3">\
+                            <div class="form-group input-group ">\
+                                <span class="input-group-addon" id="sizing-addon1">数量：<span class="badge" id="spanTotal_'+div_index+'">0</span></span>\
+                                <input type="number" class="form-control" id="inputCount_'+div_index+'" name="inputCount_'+div_index+'"  value="0" >\
+                            </div>\
+                        </div>\
+                    </div>';
+            div_index += 1;
+            $('form').append(html);
+        }
+    </script>
+   
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "layout.html" %}
+{% block content %}
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">题库编辑
+            </h4>
+          </div>
+          <div class="modal-body">
+            <form class="form-horizontal">
+                <div class="form-group">
+                <label for="inputLibName" class="col-sm-2 control-label">题库名称</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="inputLibName" placeholder="输入题库名称">
+                </div>
+                </div>
+                <div class="form-group">
+                <label for="inputSortorder" class="col-sm-2 control-label">排序号</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="inputSortorder" placeholder="输入排排序号，默认100">
+                </div>
+                <input type="hidden" id="id" />
+                </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <div class="col-sm-8">
+                <div class="text-left" id="divInfo">&nbsp;</div>
+            </div>
+            <div class="col-sm-4">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="save_or_update()">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end Modal-->
+    <div class="page-header">
+        <div class="btn-group">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            题库管理... <small>共{{results['page_info']['total_rows']}}记录</small><span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a href="javascript:show_edit_modal(0)">新增</a></li>
+            <li><a href="javascript:delete_obj()">删除</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a href="javascript:lib_export()">导出题库</a></li>
+            <li><a href="javascript:lib_export_errorsubject()">导出错误试题</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a href="javascript:refresh()">刷新</a></li>
+          </ul>
+        </div>  
+    </div>
+    <div class="dataTable_wrapper">
+        <table class="table table-striped table-hover" id="dataTables-example">
+            <thead>
+                <tr>
+                    <th width="60%">题库名称</th>
+                    <th>排序号</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results['rows'] %}
+                <tr class="odd gradeX">
+                    <td>
+                          <label>
+                            <input type="checkbox" value="{{row['id']}}">
+                           <a href=javascript:show_edit_modal({{row['id']}})>{{row['libname']}}</a>
+                          </label>
+                    </td>
+                    <td>{{row['sortorder']}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!-- 分页组件js -->
+        <script src="/static/js2/jquery.twbsPagination.js"></script>
+        <ul id="pagination" class="pagination-sm"></ul>
+        <script >
+            $(function(){
+                initLoading();
+            })
+            $(pagination).twbsPagination({
+                first: "首页",
+                prev: "前一页",
+                next: "后一页",
+                last: "尾页",
+                totalPages: {{results['page_info']['total_pages']}},
+                visiblePages: 5,
+                startPage: {{results['page_info']['page']}},
+                onPageClick: function (event, page) {
+                    location.href="/admin/lib/list/"+page;
+                }
+            });
+            function initLoading(){
+                $("body").append("<!-- loading -->" +
+                        "<div class='modal fade' id='loading' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' data-backdrop='static'>" +
+                        "<div class='modal-dialog' role='document'>" +
+                        "<div class='modal-content'>" +
+                        "<div class='modal-header'>" +
+                        "<h4 class='modal-title' id='myModalLabel'>提示</h4>" +
+                        "</div>" +
+                        "<div id='loadingText' class='modal-body'>" +
+                        "<span class='glyphicon glyphicon-refresh' aria-hidden='true'>1</span>" +
+                        "处理中，请稍候。。。" +
+                        "</div>" +
+                        "</div>" +
+                        "</div>" +
+                        "</div>"
+                );
+            }
+            function showLoading(text){
+                $("#loadingText").html(text);
+                $("#loading").modal("show");
+            }
+            function hideLoading(){
+                $("#loading").modal("hide");
+            }
+            function show_edit_modal(id){
+                if(id==0){
+                    $('#inputLibName').val('');
+                    $('#inputSortorder').val(100);
+                }
+                else{
+                    $.getJSON('/admin/lib/load/'+id,function(data){
+                        $('#inputLibName').val(data.libname);
+                        $('#inputSortorder').val(data.sortorder);
+                    })
+                }
+                $('#id').val(id)
+                $('#divInfo').html('')
+                $('#myModal').modal();
+            }
+            function check_data(data){
+                if(data.libname == ''){
+                    $('#divInfo').html('<h8>请输入题库的名称！</h8>');
+                    return false;
+                } 
+                if(data.sortorder==''){
+                    $('#divInfo').html('<h8>请输入排序号！</h8>');
+                    return false;
+                }
+                return true;
+            }
+            function save_or_update(){
+                data = {
+                    'libname': $('#inputLibName').val(),
+                    'sortorder': $('#inputSortorder').val(),
+                    'id': $('#id').val()
+                }
+                if(check_data(data) == false) return;
+                if(data.id == 0) url='/admin/lib/edit';
+                else url='/admin/lib/update/'+data.id;
+                $.ajax({
+                    url:url,
+                    type:'POST',
+                    data:JSON.stringify(data),
+                    contentType: "application/json",
+                    dataType:'json',
+                    success:function(ret_data){
+                        if(data.id==0){
+                            $('#inputLibName').val('');
+                            $('#inputSortorder').val(100);
+                        }
+                        $('#divInfo').html('<h8>'+ret_data.msg+'</h8>')
+                    }
+                });
+            }
+            function refresh(){
+                location.href='/admin/lib/list/'+{{results['page_info']['page']}}
+            }
+            function delete_obj(){
+                ids = $('input[type="checkbox"]');
+                if(ids.length<1) return;
+                obj_ids=''
+                sep=''
+                for(i=0;i<ids.length;i++){
+                    if($(ids[i]).is(':checked')){
+                        id=$(ids[i]).attr('value');
+                        obj_ids +=sep
+                        obj_ids +=id
+                        sep = ','
+                    }
+                }
+                $.getJSON('/admin/lib/delete/'+obj_ids,function(data){
+                    refresh();
+                })
+            }
+            function get_selected_lib(){
+                ids = $('input[type="checkbox"]');
+                if(ids.length<1) return '';
+                obj_ids=''
+                sep=''
+                for(i=0;i<ids.length;i++){
+                    if($(ids[i]).is(':checked')){
+                        id=$(ids[i]).attr('value');
+                        obj_ids +=sep
+                        obj_ids +=id
+                        sep = ','
+                    }
+                }
+                if(obj_ids == ''){
+                    alert('请选择要导出的题库！');
+                    return '';
+                }
+                return obj_ids;
+            }
+            function lib_export(){
+                obj_ids=get_selected_lib();
+                if(obj_ids == '') return;
+                showLoading("正在导出题库，请稍候...");
+                $.getJSON('/admin/lib/export/'+obj_ids,function(data){
+                    hideLoading();
+                    if(data.status == 'fail') alert(data.msg);
+                    else{
+                        location.href='/static/export/export.xls';
+                    }
+                })
+            }
+             function lib_export_errorsubject(){
+                obj_ids=get_selected_lib();
+                if(obj_ids == '') return;
+                showLoading("正在导出题库，请稍候...");
+                $.getJSON('/admin/lib/export_errorsubject/'+obj_ids,function(data){
+                    hideLoading();
+                    if(data.status == 'fail') alert(data.msg);
+                    else{
+                        location.href='/static/export/export.xls';
+                    }
+                })
+            }
+        </script>
+   </div>
+   
+{% endblock %}

@@ -1,0 +1,13 @@
+安装顺序：
+(.whl文件使用pip install安装;其它使用python setup.py install安装)
+
+Werkzeug-0.11.2-py2.py3-none-any.whl
+xlwt-1.1.2-py2.py3-none-any.whl
+MarkupSafe
+itsdangerous
+Jinja2-2.8-py2.py3-none-any.whl
+SQLAlchemy-1.0.9
+Flask
+Flask-login
+Flask-SQLAlchemy
+xlrd
